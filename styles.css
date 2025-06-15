@@ -1,0 +1,514 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+    height: 100vh;
+    overflow: hidden;
+}
+
+#canvas {
+    width: 100vw;
+    height: 100vh; 
+    background: var(--canvas-bg);
+    cursor: crosshair;
+    position: relative;
+    overflow: hidden;
+}
+
+#canvas-content {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    transform-origin: center center;
+    transition: transform 0.2s ease;
+}
+
+.bubble {
+    position: absolute;
+    min-width: 40px;
+    min-height: 20px;
+    width: auto;
+    height: auto;
+    background: linear-gradient(135deg, var(--bubble-bg-start), var(--bubble-bg-end));
+    border: 2px solid var(--bubble-border);
+    border-radius: 20px;
+    padding: 6px 12px;
+    color: var(--bubble-text);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: grab;
+    user-select: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    z-index: 10;
+    resize: none;
+    white-space: nowrap;
+    overflow: visible;
+}
+
+.bubble:active {
+    cursor: grabbing;
+}
+
+.bubble:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+}
+
+.bubble.editing {
+    background: #fff;
+    color: #333;
+    border-color: #667eea;
+    width: auto !important;
+    height: auto !important;
+    font-size: 12px !important;
+}
+
+.bubble input {
+    background: transparent;
+    border: none;
+    outline: none;
+    color: inherit;
+    font-size: inherit;
+    font-weight: inherit;
+    text-align: center;
+    width: auto;
+    min-width: 40px;
+    white-space: nowrap;
+}
+
+.connection {
+    position: absolute;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.temp-line {
+    position: absolute;
+    pointer-events: none;
+    z-index: 5;
+}
+
+.ui-panel {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    background: rgba(255,255,255,0.95);
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+    z-index: 1000;
+    backdrop-filter: blur(15px);
+    border: 1px solid rgba(255,255,255,0.3);
+    transition: all 0.3s ease;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.ui-panel.minimized {
+    width: 50px;
+    height: 50px;
+    overflow: hidden;
+}
+
+.ui-panel.minimized .panel-content {
+    display: none;
+}
+
+.ui-panel.minimized .minimize-btn {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.minimize-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 24px;
+    height: 24px;
+    background: rgba(255,255,255,0.8);
+    border: 1px solid rgba(103, 126, 234, 0.2);
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: bold;
+    color: #555;
+    transition: all 0.2s ease;
+    z-index: 1001;
+}
+
+.minimize-btn:hover {
+    background: rgba(255,255,255,1);
+    border-color: rgba(103, 126, 234, 0.4);
+    transform: scale(1.1);
+}
+
+.panel-content {
+    padding: 15px;
+}
+
+.instructions {
+    background: transparent;
+    padding: 0;
+    border-radius: 0;
+    font-size: 12px;
+    color: #333;
+    max-width: 250px;
+    box-shadow: none;
+    margin-bottom: 20px;
+}
+
+.toolbar {
+    background: transparent;
+    padding: 0;
+    border-radius: 0;
+    box-shadow: none;
+    backdrop-filter: none;
+    border: none;
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+}
+
+.toolbar button {
+    background: rgba(255,255,255,0.7);
+    border: 1px solid rgba(103, 126, 234, 0.15);
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    outline: none;
+    color: #555;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+    min-width: 0;
+}
+
+.toolbar button:hover {
+    border-color: rgba(103, 126, 234, 0.3);
+    background: rgba(255,255,255,0.9);
+    color: #333;
+    transform: translateY(-0.5px);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+}
+
+.toolbar button:active {
+    transform: translateY(0);
+    box-shadow: none;
+}
+
+.toolbar input[type="file"] {
+    display: none;
+}
+
+.instructions h3 {
+    margin-bottom: 8px;
+    color: #667eea;
+}
+
+.instructions ul {
+    list-style: none;
+    line-height: 1.4;
+}
+
+.instructions li {
+    margin-bottom: 4px;
+}
+
+.instructions li:before {
+    content: "• ";
+    color: #667eea;
+    font-weight: bold;
+}
+
+.zoom-info {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: rgba(255,255,255,0.9);
+    padding: 10px 15px;
+    border-radius: 8px;
+    font-size: 12px;
+    color: #333;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    z-index: 100;
+}
+
+.theme-selector {
+    background: transparent;
+    padding: 0;
+    border-radius: 0;
+    font-size: 12px;
+    color: #333;
+    box-shadow: none;
+    backdrop-filter: none;
+    border: none;
+    margin-bottom: 20px;
+}
+
+.theme-selector label {
+    font-weight: 500;
+    margin-right: 8px;
+    color: #555;
+}
+
+.theme-selector select {
+    background: rgba(255,255,255,0.8);
+    border: 1px solid rgba(103, 126, 234, 0.2);
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    outline: none;
+    color: #333;
+    min-width: 80px;
+    backdrop-filter: blur(5px);
+    transition: all 0.2s ease;
+}
+
+.theme-selector select:hover {
+    border-color: rgba(103, 126, 234, 0.4);
+    background: rgba(255,255,255,0.95);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.theme-selector select:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(103, 126, 234, 0.1);
+}
+
+.line-type-indicator {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    background: rgba(255,255,255,0.9);
+    padding: 10px 15px;
+    border-radius: 8px;
+    font-size: 12px;
+    color: #333;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    z-index: 100;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.line-type-indicator.visible {
+    opacity: 1;
+}
+
+/* Theme Variables */
+:root {
+    --bg-primary: #667eea;
+    --bg-secondary: #764ba2;
+    --bubble-bg-start: #667eea;
+    --bubble-bg-end: #764ba2;
+    --bubble-text: white;
+    --bubble-border: #fff;
+    --connection-color: #667eea;
+    --connection-hover: #764ba2;
+    --temp-line-color: #764ba2;
+    --canvas-bg: #f8f9fa;
+}
+
+/* Dark Theme */
+.theme-dark {
+    --bg-primary: #2C3E50;
+    --bg-secondary: #34495E;
+    --bubble-bg-start: #34495E;
+    --bubble-bg-end: #2C3E50;
+    --bubble-text: #ECF0F1;
+    --bubble-border: #7F8C8D;
+    --connection-color: #7F8C8D;
+    --connection-hover: #BDC3C7;
+    --temp-line-color: #BDC3C7;
+    --canvas-bg: #1a1a1a;
+}
+
+/* Dark theme adjustments for UI elements */
+.theme-dark .ui-panel {
+    background: rgba(44, 62, 80, 0.95);
+    border-color: rgba(127, 140, 141, 0.3);
+}
+
+.theme-dark .instructions {
+    color: #ECF0F1;
+}
+
+.theme-dark .instructions h3 {
+    color: #BDC3C7;
+}
+
+.theme-dark .instructions li:before {
+    color: #BDC3C7;
+}
+
+.theme-dark .toolbar button {
+    background: rgba(52, 73, 94, 0.7);
+    color: #BDC3C7;
+    border-color: rgba(127, 140, 141, 0.15);
+}
+
+.theme-dark .toolbar button:hover {
+    border-color: rgba(127, 140, 141, 0.3);
+    background: rgba(52, 73, 94, 0.9);
+    color: #ECF0F1;
+}
+
+.theme-dark .minimize-btn {
+    background: rgba(52, 73, 94, 0.8);
+    color: #BDC3C7;
+    border-color: rgba(127, 140, 141, 0.2);
+}
+
+.theme-dark .minimize-btn:hover {
+    background: rgba(52, 73, 94, 1);
+    border-color: rgba(127, 140, 141, 0.4);
+    color: #ECF0F1;
+}
+
+.theme-dark .zoom-info {
+    background: rgba(44, 62, 80, 0.9);
+    color: #ECF0F1;
+}
+
+.theme-dark .line-type-indicator {
+    background: rgba(44, 62, 80, 0.9);
+    color: #ECF0F1;
+}
+
+.theme-dark .theme-selector label {
+    color: #BDC3C7;
+}
+
+.theme-dark .theme-selector select {
+    background: rgba(52, 73, 94, 0.8);
+    color: #ECF0F1;
+    border-color: rgba(127, 140, 141, 0.2);
+}
+
+.theme-dark .theme-selector select:hover {
+    border-color: rgba(127, 140, 141, 0.4);
+    background: rgba(52, 73, 94, 0.95);
+}
+
+.theme-dark .theme-selector select:focus {
+    border-color: #7F8C8D;
+    box-shadow: 0 0 0 3px rgba(127, 140, 141, 0.1);
+}
+
+.color-palette {
+    position: fixed;
+    left: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(255,255,255,0.95);
+    padding: 15px 10px;
+    border-radius: 15px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+    z-index: 1000;
+    backdrop-filter: blur(15px);
+    border: 1px solid rgba(255,255,255,0.3);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.color-palette h4 {
+    font-size: 11px;
+    font-weight: 600;
+    text-align: center;
+    margin: 0 0 5px 0;
+    color: #555;
+}
+
+.color-option {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 3px solid transparent;
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+.color-option:hover {
+    transform: scale(1.1);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+.color-option.selected {
+    border-color: #333;
+    transform: scale(1.15);
+    box-shadow: 0 3px 12px rgba(0,0,0,0.3);
+}
+
+.color-option.selected::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 8px;
+    height: 8px;
+    background: rgba(255,255,255,0.9);
+    border-radius: 50%;
+    box-shadow: 0 0 0 1px rgba(0,0,0,0.2);
+}
+
+.color-default {
+    background: #8B7ED8;
+}
+
+.color-red {
+    background: #E85A5A;
+}
+
+.color-blue {
+    background: #5A9BD4;
+}
+
+.color-green {
+    background: #7BC142;
+}
+
+.color-yellow {
+    background: #F4A460;
+}
+
+/* Dark theme adjustments for color palette */
+.theme-dark .color-palette {
+    background: rgba(44, 62, 80, 0.95);
+    border-color: rgba(127, 140, 141, 0.3);
+}
+
+.theme-dark .color-palette h4 {
+    color: #BDC3C7;
+}
+
+.theme-dark .color-option.selected {
+    border-color: #BDC3C7;
+}

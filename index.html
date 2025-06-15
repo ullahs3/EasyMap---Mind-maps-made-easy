@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Mind Map</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="canvas">
+        <div id="canvas-content">
+        </div>
+    </div>
+    
+    <div class="ui-panel" id="ui-panel">
+        <div class="minimize-btn" id="minimize-btn">−</div>
+        <div class="panel-content">
+            <div class="instructions">
+                <h3>Mind Map Controls</h3>
+                <ul>
+                    <li>Right-click: Create bubble</li>
+                    <li>Left-click drag: Move bubble</li>
+                    <li>Scroll while dragging: Resize bubble</li>
+                    <li>Double-click: Edit text</li>
+                    <li>Right-click hold: Connect bubbles</li>
+                    <li>Left-click while connecting: Toggle line type</li>
+                    <li>Middle-click: Delete bubble/line</li>
+                    <li>Scroll wheel: Zoom in/out</li>
+                </ul>
+            </div>
+            
+            <div class="toolbar">
+                <button id="save-btn">Save</button>
+                <button id="load-btn">Load</button>
+                <button id="export-png-btn">Export PNG</button>
+                <button id="export-json-btn">Export JSON</button>
+                <button id="clear-btn">Clear All</button>
+                <input type="file" id="file-input" accept=".json">
+            </div>
+            
+            <div class="theme-selector">
+                <label for="theme-select">Theme:</label>
+                <select id="theme-select">
+                    <option value="default">Default</option>
+                    <option value="dark">Dark</option>
+                </select>
+            </div>
+        </div>
+    </div>
+    
+    <div class="color-palette">
+        <h4>Colors</h4>
+        <div class="color-option color-default selected" data-color="default"></div>
+        <div class="color-option color-red" data-color="red"></div>
+        <div class="color-option color-blue" data-color="blue"></div>
+        <div class="color-option color-green" data-color="green"></div>
+        <div class="color-option color-yellow" data-color="yellow"></div>
+    </div>
+    
+    <div class="zoom-info">
+        Zoom: <span id="zoom-level">100%</span>
+    </div>
+
+    <div class="line-type-indicator" id="line-type-indicator">
+        Line Type: <span id="line-type-text">Solid</span>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
