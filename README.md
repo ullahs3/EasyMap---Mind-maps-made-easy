@@ -1,7 +1,8 @@
 # EasyMap - Mind Maps Made Easy 🧠
 
-A powerful, interactive web-based mind mapping tool that runs entirely in your browser. Create, organize, and visualize your ideas with an intuitive drag-and-drop interface.
-
+Lightning-fast mind mapping with zero learning curve. Right-click to create, left-click to move, middle-click to delete. No menus, no complexity – just pure speed and efficiency for capturing your thoughts at the speed of thinking.
+![EasyMap Demo](assets/demo.gif)
+![EasyMap Screenshot](assets/screenshot.png)
 ## Features
 
 ### Core Functionality
