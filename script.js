@@ -156,7 +156,7 @@ class MindMap {
   }
 
   handleMouseDown(e) {
-    if (e.button === 1) {
+    if ((e.ctrlKey && e.button === 2) || e.button === 1) {
       const target = e.target.closest(".bubble");
       if (target) {
         this.deleteBubble(target);
@@ -164,7 +164,7 @@ class MindMap {
       }
     }
 
-    if (e.button === 2) {
+    if (e.button === 2 || (e.ctrlKey && e.button === 0)) {
       const target = e.target.closest(".bubble");
       if (target) {
         this.isConnecting = true;
@@ -172,7 +172,7 @@ class MindMap {
         this.currentLineType = "solid";
         this.createTempLine(e.clientX, e.clientY);
         this.showLineTypeIndicator();
-      } else {
+      } else if (e.button === 2) {
         this.createBubble(e.clientX, e.clientY);
       }
     } else if (e.button === 0 && this.isConnecting) {
@@ -583,7 +583,7 @@ class MindMap {
     });
 
     clickPath.addEventListener("mousedown", (e) => {
-      if (e.button === 1) {
+      if ((e.ctrlKey && e.button === 2) || e.button === 1) {
         e.preventDefault();
         e.stopPropagation();
         this.deleteConnection(connection);
