@@ -4,6 +4,7 @@ class MindMap {
     this.canvasContent = document.getElementById("canvas-content");
     this.zoomLevel = 1;
     this.maxZoom = 2.5;
+    this.minZoom = 0.1;
     this.zoomDisplay = document.getElementById("zoom-level");
     this.themeSelect = document.getElementById("theme-select");
     this.colorPalette = document.querySelector(".color-palette");
@@ -21,8 +22,6 @@ class MindMap {
     this.exportJsonBtn = document.getElementById("export-json-btn");
     this.clearBtn = document.getElementById("clear-btn");
     this.fileInput = document.getElementById("file-input");
-    this.translateX = 0;
-    this.translateY = 0;
     this.bubbles = [];
     this.connections = [];
     this.isDragging = false;
@@ -31,6 +30,10 @@ class MindMap {
     this.connectStart = null;
     this.tempLine = null;
     this.dragOffset = { x: 0, y: 0 };
+    this.isPanning = false;
+    this.panStart = { x: 0, y: 0 };
+    this.translateX = 0;
+    this.translateY = 0;
 
     // Color definitions
     this.colors = {
@@ -75,7 +78,7 @@ class MindMap {
     this.canvas.addEventListener("mousemove", this.handleMouseMove.bind(this));
     this.canvas.addEventListener("mouseup", this.handleMouseUp.bind(this));
     this.canvas.addEventListener("dblclick", this.handleDoubleClick.bind(this));
-    this.canvas.addEventListener("wheel", this.handleWheel.bind(this));
+    // this.canvas.addEventListener("wheel", this.handleWheel.bind(this));
     this.themeSelect.addEventListener(
       "change",
       this.handleThemeChange.bind(this)
@@ -113,49 +116,19 @@ class MindMap {
 
   screenToCanvas(screenX, screenY) {
     const rect = this.canvas.getBoundingClientRect();
-    const mouseX = screenX - rect.left;
-    const mouseY = screenY - rect.top;
-    const canvasX = (mouseX - this.translateX) / this.zoomLevel;
-    const canvasY = (mouseY - this.translateY) / this.zoomLevel;
-    return { x: canvasX, y: canvasY };
-  }
-
-  handleWheel(e) {
-    e.preventDefault();
-
-    if (this.isDragging && this.dragTarget) {
-      this.resizeBubble(this.dragTarget, e.deltaY);
-      return;
-    }
-
-    const delta = e.deltaY > 0 ? 0.9 : 1.1;
-    let newZoom = this.zoomLevel * delta;
-    newZoom = Math.max(1, Math.min(this.maxZoom, newZoom));
-
-    if (newZoom !== this.zoomLevel) {
-      const rect = this.canvas.getBoundingClientRect();
-      const mouseX = e.clientX - rect.left;
-      const mouseY = e.clientY - rect.top;
-
-      const pointX = (mouseX - this.translateX) / this.zoomLevel;
-      const pointY = (mouseY - this.translateY) / this.zoomLevel;
-
-      this.zoomLevel = newZoom;
-
-      this.translateX = mouseX - pointX * this.zoomLevel;
-      this.translateY = mouseY - pointY * this.zoomLevel;
-
-      if (this.zoomLevel === 1) {
-        this.translateX = 0;
-        this.translateY = 0;
-      }
-      this.canvasContent.style.transformOrigin = "0 0";
-      this.canvasContent.style.transform = `translate(${this.translateX}px, ${this.translateY}px) scale(${this.zoomLevel})`;
-      this.updateZoomDisplay();
-    }
+    return {
+      x: (screenX - rect.left - this.translateX) / this.zoomLevel,
+      y: (screenY - rect.top - this.translateY) / this.zoomLevel
+    };
   }
 
   handleMouseDown(e) {
+    if (e.button === 0 && !e.ctrlKey && !e.target.closest(".bubble")) {
+      this.isPanning = true;
+      this.panStart = { x: e.clientX, y: e.clientY };
+      return;
+    }
+
     if ((e.ctrlKey && e.button === 2) || e.button === 1) {
       const target = e.target.closest(".bubble");
       if (target) {
@@ -198,11 +171,40 @@ class MindMap {
   }
 
   handleMouseMove(e) {
+    if (this.isPanning) {
+      const dx = e.clientX - this.panStart.x;
+      const dy = e.clientY - this.panStart.y;
+      this.translateX += dx;
+      this.translateY += dy;
+      this.panStart = { x: e.clientX, y: e.clientY };
+      this.updateCanvasTransform();
+      return;
+    }
+
     if (this.isDragging && this.dragTarget) {
       const canvasPos = this.screenToCanvas(e.clientX, e.clientY);
       const x = canvasPos.x - this.dragOffset.x;
       const y = canvasPos.y - this.dragOffset.y;
+      
+      // Get all child bubbles
+      const childBubbles = this.getChildBubbles(this.dragTarget);
+      
+      // Calculate the movement delta
+      const oldX = parseFloat(this.dragTarget.style.left);
+      const oldY = parseFloat(this.dragTarget.style.top);
+      const deltaX = x - oldX;
+      const deltaY = y - oldY;
+      
+      // Move the parent bubble
       this.moveBubble(this.dragTarget, x, y);
+      
+      // Move all child bubbles by the same delta
+      childBubbles.forEach(child => {
+        const childX = parseFloat(child.style.left) + deltaX;
+        const childY = parseFloat(child.style.top) + deltaY;
+        this.moveBubble(child, childX, childY);
+      });
+      
       this.updateConnections();
     } else if (this.isConnecting && this.tempLine) {
       this.updateTempLine(e.clientX, e.clientY);
@@ -210,6 +212,7 @@ class MindMap {
   }
 
   handleMouseUp(e) {
+    this.isPanning = false;
     if (this.isDragging) {
       this.isDragging = false;
       this.dragTarget = null;
@@ -559,8 +562,8 @@ class MindMap {
     svg.appendChild(visiblePath);
 
     const connection = {
-      start: bubble1,
-      end: bubble2,
+      start: bubble2,
+      end: bubble1,
       element: svg,
       clickLine: clickPath,
       visibleLine: visiblePath,
@@ -678,6 +681,7 @@ class MindMap {
     bubble.style.background = colorScheme.bg;
     bubble.style.borderColor = colorScheme.border;
     bubble.style.color = colorScheme.text;
+    bubble.dataset.color = color;
   }
 
   updateZoomDisplay() {
@@ -969,6 +973,22 @@ class MindMap {
       width: maxX - minX,
       height: maxY - minY,
     };
+  }
+
+  updateCanvasTransform() {
+    this.canvasContent.style.transform = `translate(${this.translateX}px, ${this.translateY}px) scale(${this.zoomLevel})`;
+  }
+
+  getChildBubbles(parentBubble) {
+    const children = [];
+    this.connections.forEach(conn => {
+      if (conn.start === parentBubble) {
+        children.push(conn.end);
+        // Recursively get children of children
+        children.push(...this.getChildBubbles(conn.end));
+      }
+    });
+    return children;
   }
 }
 
