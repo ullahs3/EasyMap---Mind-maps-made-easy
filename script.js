@@ -77,6 +77,7 @@ class MindMap {
     this.canvas.addEventListener("mousemove", this.handleMouseMove.bind(this));
     this.canvas.addEventListener("mouseup", this.handleMouseUp.bind(this));
     this.canvas.addEventListener("dblclick", this.handleDoubleClick.bind(this));
+    this.canvas.addEventListener("wheel", this.handleWheel.bind(this));
     this.themeSelect.addEventListener(
       "change",
       this.handleThemeChange.bind(this)
@@ -322,8 +323,8 @@ class MindMap {
     const bubbleWidth = bubble.offsetWidth || 80;
     const bubbleHeight = bubble.offsetHeight || 40;
 
-    x = Math.max(0, Math.min(x, canvasWidth - bubbleWidth));
-    y = Math.max(0, Math.min(y, canvasHeight - bubbleHeight));
+    // x = Math.max(0, Math.min(x, canvasWidth - bubbleWidth));
+    // y = Math.max(0, Math.min(y, canvasHeight - bubbleHeight));
 
     bubble.style.left = x + "px";
     bubble.style.top = y + "px";
@@ -400,6 +401,7 @@ class MindMap {
     svg.setAttribute("class", "temp-line");
     svg.style.width = "100%";
     svg.style.height = "100%";
+    svg.style.overflow = "visible";
 
     const line = document.createElementNS("http://www.w3.org/2000/svg", "path");
 
@@ -499,12 +501,13 @@ class MindMap {
 
     const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     svg.setAttribute("class", "connection");
-    svg.style.width = "100%";
-    svg.style.height = "100%";
     svg.style.position = "absolute";
     svg.style.top = "0";
     svg.style.left = "0";
+    svg.style.width = "100%";
+    svg.style.height = "100%";
     svg.style.pointerEvents = "none";
+    svg.style.overflow = "visible";
 
     const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
     const gradient = document.createElementNS(
@@ -518,26 +521,17 @@ class MindMap {
     const bubbleColor = bubble2.dataset.color || "default";
     const connectionColor = this.colors[bubbleColor].connection;
 
-    const stop1 = document.createElementNS(
-      "http://www.w3.org/2000/svg",
-      "stop"
-    );
+    const stop1 = document.createElementNS("http://www.w3.org/2000/svg", "stop");
     stop1.setAttribute("offset", "0%");
     stop1.setAttribute("stop-color", connectionColor);
     stop1.setAttribute("stop-opacity", "0.9");
 
-    const stop2 = document.createElementNS(
-      "http://www.w3.org/2000/svg",
-      "stop"
-    );
+    const stop2 = document.createElementNS("http://www.w3.org/2000/svg", "stop");
     stop2.setAttribute("offset", "50%");
     stop2.setAttribute("stop-color", connectionColor);
     stop2.setAttribute("stop-opacity", "0.7");
 
-    const stop3 = document.createElementNS(
-      "http://www.w3.org/2000/svg",
-      "stop"
-    );
+    const stop3 = document.createElementNS("http://www.w3.org/2000/svg", "stop");
     stop3.setAttribute("offset", "100%");
     stop3.setAttribute("stop-color", connectionColor);
     stop3.setAttribute("stop-opacity", "0.4");
@@ -548,10 +542,7 @@ class MindMap {
     defs.appendChild(gradient);
     svg.appendChild(defs);
 
-    const clickPath = document.createElementNS(
-      "http://www.w3.org/2000/svg",
-      "path"
-    );
+    const clickPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
     clickPath.setAttribute("fill", "none");
     clickPath.setAttribute("stroke", "transparent");
     clickPath.setAttribute("stroke-width", "20");
@@ -559,10 +550,7 @@ class MindMap {
     clickPath.style.pointerEvents = "stroke";
     clickPath.style.cursor = "pointer";
 
-    const visiblePath = document.createElementNS(
-      "http://www.w3.org/2000/svg",
-      "path"
-    );
+    const visiblePath = document.createElementNS("http://www.w3.org/2000/svg", "path");
     visiblePath.setAttribute("fill", "none");
     visiblePath.setAttribute("stroke", `url(#${gradientId})`);
     visiblePath.setAttribute("stroke-width", "4");
@@ -574,10 +562,7 @@ class MindMap {
 
     this.setLineStyle(visiblePath, lineType);
 
-    const glowPath = document.createElementNS(
-      "http://www.w3.org/2000/svg",
-      "path"
-    );
+    const glowPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
     glowPath.setAttribute("fill", "none");
     glowPath.setAttribute("stroke", connectionColor);
     glowPath.setAttribute("stroke-width", "8");
@@ -646,7 +631,6 @@ class MindMap {
     connection.gradient.setAttribute("y2", y2);
 
     const pathData = this.createCurvePath(x1, y1, x2, y2);
-
     connection.clickLine.setAttribute("d", pathData);
     connection.visibleLine.setAttribute("d", pathData);
     connection.glowLine.setAttribute("d", pathData);
@@ -1020,6 +1004,26 @@ class MindMap {
       }
     });
     return children;
+  }
+
+  handleWheel(e) {
+    e.preventDefault();
+    
+    // Get the mouse position relative to the canvas
+    const rect = this.canvas.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+    
+    // Calculate the scroll delta (negated to fix inverted direction)
+    const deltaX = -(e.deltaX || 0);
+    const deltaY = -(e.deltaY || 0);
+    
+    // Update the translation
+    this.translateX += deltaX;
+    this.translateY += deltaY;
+    
+    // Update the canvas transform
+    this.updateCanvasTransform();
   }
 }
 
