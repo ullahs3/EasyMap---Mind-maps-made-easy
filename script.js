@@ -993,15 +993,23 @@ class MindMap {
   }
 
   getChildBubbles(parentBubble) {
-    const children = [];
-    this.connections.forEach(conn => {
-      if (conn.start === parentBubble) {
-        children.push(conn.end);
-        // Recursively get children of children
-        children.push(...this.getChildBubbles(conn.end));
-      }
-    });
-    return children;
+    const children = new Set();
+    const visited = new Set();
+
+    const traverse = (bubble) => {
+      if (visited.has(bubble)) return;
+      visited.add(bubble);
+
+      this.connections.forEach(conn => {
+        if (conn.start === bubble) {
+          children.add(conn.end);
+          traverse(conn.end);
+        }
+      });
+    };
+
+    traverse(parentBubble);
+    return Array.from(children);
   }
 
   handleWheel(e) {
