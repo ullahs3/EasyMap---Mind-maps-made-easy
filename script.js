@@ -173,6 +173,7 @@ class MindMap {
       if (target && !target.classList.contains("editing")) {
         this.isDragging = true;
         this.dragTarget = target;
+        this.panStart = { x: e.clientX, y: e.clientY };
 
         const canvasPos = this.screenToCanvas(e.clientX, e.clientY);
         const bubbleLeft = parseFloat(target.style.left);
@@ -202,24 +203,42 @@ class MindMap {
       const x = canvasPos.x - this.dragOffset.x;
       const y = canvasPos.y - this.dragOffset.y;
       
-      // Get all child bubbles
-      const childBubbles = this.getChildBubbles(this.dragTarget);
-      
-      // Calculate the movement delta
-      const oldX = parseFloat(this.dragTarget.style.left);
-      const oldY = parseFloat(this.dragTarget.style.top);
-      const deltaX = x - oldX;
-      const deltaY = y - oldY;
-      
-      // Move the parent bubble
-      this.moveBubble(this.dragTarget, x, y);
-      
-      // Move all child bubbles by the same delta
-      childBubbles.forEach(child => {
-        const childX = parseFloat(child.style.left) + deltaX;
-        const childY = parseFloat(child.style.top) + deltaY;
-        this.moveBubble(child, childX, childY);
-      });
+      if (e.shiftKey) {
+        // Resize bubble when holding shift
+        const deltaY = this.panStart.y - e.clientY;
+        const currentHeight = parseFloat(this.dragTarget.style.height) || 40;
+        const newHeight = Math.max(20, currentHeight + deltaY);
+        const heightDiff = newHeight - currentHeight;
+        
+        // Update height
+        this.dragTarget.style.height = `${newHeight}px`;
+        
+        // Move the bubble up by half the height difference to maintain center point
+        const currentTop = parseFloat(this.dragTarget.style.top);
+        this.dragTarget.style.top = `${currentTop - heightDiff/2}px`;
+        
+        this.panStart = { x: e.clientX, y: e.clientY };
+      } else {
+        // Move bubble normally
+        // Get all child bubbles
+        const childBubbles = this.getChildBubbles(this.dragTarget);
+        
+        // Calculate the movement delta
+        const oldX = parseFloat(this.dragTarget.style.left);
+        const oldY = parseFloat(this.dragTarget.style.top);
+        const deltaX = x - oldX;
+        const deltaY = y - oldY;
+        
+        // Move the parent bubble
+        this.moveBubble(this.dragTarget, x, y);
+        
+        // Move all child bubbles by the same delta
+        childBubbles.forEach(child => {
+          const childX = parseFloat(child.style.left) + deltaX;
+          const childY = parseFloat(child.style.top) + deltaY;
+          this.moveBubble(child, childX, childY);
+        });
+      }
       
       this.updateConnections();
     } else if (this.isConnecting && this.tempLine) {
