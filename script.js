@@ -13,6 +13,7 @@ class MindMap {
     this.lineTypeIndicator = document.getElementById("line-type-indicator");
     this.lineTypeText = document.getElementById("line-type-text");
     this.currentLineType = "solid";
+    this.isSpacePressed = false;
 
     // Toolbar elements
     this.saveBtn = document.getElementById("save-btn");
@@ -104,6 +105,7 @@ class MindMap {
 
     // Add keydown event listener for line type toggle
     window.addEventListener('keydown', this.handleKeyDown.bind(this));
+    window.addEventListener('keyup', this.handleKeyUp.bind(this));
   }
 
   updateBrowserZoom() {
@@ -132,10 +134,18 @@ class MindMap {
   }
 
   handleKeyDown(e) {
-    if (this.isConnecting && this.connectStart && e.key === 'Shift') {
-      e.preventDefault();
-      e.stopPropagation();
+    if (e.key === ' ' || e.code === 'Space') {
+      e.preventDefault(); // Prevent page scrolling
+      this.isSpacePressed = true;
+    }
+    if (e.code === 'ShiftLeft' && this.isConnecting) {
       this.toggleLineType();
+    }
+  }
+
+  handleKeyUp(e) {
+    if (e.key === ' ' || e.code === 'Space') {
+      this.isSpacePressed = false;
     }
   }
 
@@ -203,7 +213,7 @@ class MindMap {
       const canvasPos = this.screenToCanvas(e.clientX, e.clientY);
       const x = canvasPos.x - this.dragOffset.x;
       const y = canvasPos.y - this.dragOffset.y;
-      
+
       if (e.shiftKey) {
         // Resize bubble when holding shift
         const deltaY = this.panStart.y - e.clientY;
@@ -221,8 +231,8 @@ class MindMap {
         this.panStart = { x: e.clientX, y: e.clientY };
       } else {
         // Move bubble normally
-        // Get all child bubbles
-        const childBubbles = this.getChildBubbles(this.dragTarget);
+        // Get all child bubbles if space is pressed
+        const childBubbles = this.isSpacePressed ? this.getChildBubbles(this.dragTarget) : [];
         
         // Calculate the movement delta
         const oldX = parseFloat(this.dragTarget.style.left);
@@ -233,12 +243,14 @@ class MindMap {
         // Move the parent bubble
         this.moveBubble(this.dragTarget, x, y);
         
-        // Move all child bubbles by the same delta
-        childBubbles.forEach(child => {
-          const childX = parseFloat(child.style.left) + deltaX;
-          const childY = parseFloat(child.style.top) + deltaY;
-          this.moveBubble(child, childX, childY);
-        });
+        // Move all child bubbles by the same delta if space is pressed
+        if (this.isSpacePressed) {
+          childBubbles.forEach(child => {
+            const childX = parseFloat(child.style.left) + deltaX;
+            const childY = parseFloat(child.style.top) + deltaY;
+            this.moveBubble(child, childX, childY);
+          });
+        }
       }
       
       this.updateConnections();
