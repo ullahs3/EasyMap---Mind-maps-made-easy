@@ -100,6 +100,9 @@ class MindMap {
     // Add zoom detection
     this.updateBrowserZoom();
     window.addEventListener('resize', this.updateBrowserZoom.bind(this));
+
+    // Add keydown event listener for line type toggle
+    window.addEventListener('keydown', this.handleKeyDown.bind(this));
   }
 
   updateBrowserZoom() {
@@ -125,6 +128,14 @@ class MindMap {
       x: (screenX - rect.left - this.translateX) / this.zoomLevel,
       y: (screenY - rect.top - this.translateY) / this.zoomLevel
     };
+  }
+
+  handleKeyDown(e) {
+    if (this.isConnecting && this.connectStart && e.key === 'Shift') {
+      e.preventDefault();
+      e.stopPropagation();
+      this.toggleLineType();
+    }
   }
 
   handleMouseDown(e) {
@@ -242,7 +253,7 @@ class MindMap {
 
   toggleLineType() {
     this.currentLineType =
-      this.currentLineType === "solid" ? "dotted" : "solid";
+      this.currentLineType === "solid" ? "dashed" : "solid";
     this.updateLineTypeIndicator();
 
     if (this.tempLine) {
@@ -252,7 +263,7 @@ class MindMap {
 
   updateLineTypeIndicator() {
     this.lineTypeText.textContent =
-      this.currentLineType === "solid" ? "Solid" : "Dotted";
+      this.currentLineType === "solid" ? "Solid" : "Dashed";
   }
 
   showLineTypeIndicator() {
@@ -392,10 +403,10 @@ class MindMap {
   }
 
   setLineStyle(lineElement, lineType) {
-    if (lineType === "dotted") {
+    if (lineType === "dashed") {
       lineElement.setAttribute("stroke-dasharray", "4,6");
     } else {
-      lineElement.setAttribute("stroke-dasharray", "8,4");
+      lineElement.setAttribute("stroke-dasharray", "none");
     }
   }
 
@@ -542,9 +553,7 @@ class MindMap {
     visiblePath.style.transition = "all 0.3s ease";
     visiblePath.style.filter = "drop-shadow(0 2px 4px rgba(0,0,0,0.1))";
 
-    if (lineType === "dotted") {
-      visiblePath.setAttribute("stroke-dasharray", "4,6");
-    }
+    this.setLineStyle(visiblePath, lineType);
 
     const glowPath = document.createElementNS(
       "http://www.w3.org/2000/svg",
@@ -558,9 +567,7 @@ class MindMap {
     glowPath.setAttribute("opacity", "0.1");
     glowPath.style.pointerEvents = "none";
 
-    if (lineType === "dotted") {
-      glowPath.setAttribute("stroke-dasharray", "4,6");
-    }
+    this.setLineStyle(glowPath, lineType);
 
     svg.appendChild(glowPath);
     svg.appendChild(clickPath);
