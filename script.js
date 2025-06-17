@@ -5,7 +5,6 @@ class MindMap {
     this.zoomLevel = 1;
     this.maxZoom = 2.5;
     this.minZoom = 0.1;
-    this.zoomDisplay = document.getElementById("zoom-level");
     this.themeSelect = document.getElementById("theme-select");
     this.colorPalette = document.querySelector(".color-palette");
     this.selectedColor = "default";
@@ -78,7 +77,6 @@ class MindMap {
     this.canvas.addEventListener("mousemove", this.handleMouseMove.bind(this));
     this.canvas.addEventListener("mouseup", this.handleMouseUp.bind(this));
     this.canvas.addEventListener("dblclick", this.handleDoubleClick.bind(this));
-    // this.canvas.addEventListener("wheel", this.handleWheel.bind(this));
     this.themeSelect.addEventListener(
       "change",
       this.handleThemeChange.bind(this)
@@ -99,7 +97,14 @@ class MindMap {
     this.exportJsonBtn.addEventListener("click", this.exportToJSON.bind(this));
     this.clearBtn.addEventListener("click", this.clearAll.bind(this));
 
-    this.updateZoomDisplay();
+    // Add zoom detection
+    this.updateBrowserZoom();
+    window.addEventListener('resize', this.updateBrowserZoom.bind(this));
+  }
+
+  updateBrowserZoom() {
+    const zoom = window.devicePixelRatio;
+    document.documentElement.style.setProperty('--browser-zoom', zoom);
   }
 
   toggleMinimize() {
