@@ -816,8 +816,7 @@ class MindMap {
       this.translateY = data.translate.y;
     }
 
-    this.canvasContent.style.transform = `translate(${this.translateX}px, ${this.translateY}px) scale(${this.zoomLevel})`;
-    this.updateZoomDisplay();
+    this.updateCanvasTransform();
   }
 
   exportToPNG() {
@@ -947,8 +946,7 @@ class MindMap {
     this.zoomLevel = 1;
     this.translateX = 0;
     this.translateY = 0;
-    this.canvasContent.style.transform = "";
-    this.updateZoomDisplay();
+    this.updateCanvasTransform();
   }
 
   getContentBounds() {
