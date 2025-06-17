@@ -512,27 +512,17 @@ body {
     box-shadow: 0 0 0 1px rgba(0,0,0,0.2);
 }
 
-.color-default {
-    background: #8B7ED8;
-}
+.color-default { background: #8B7ED8; }
+.color-red { background: #E85A5A; }
+.color-blue { background: #5A9BD4; }
+.color-green { background: #7BC142; }
+.color-yellow { background: #F4A460; }
+.color-purple { background: #9B59B6; }
+.color-orange { background: #E67E22; }
+.color-teal { background: #1ABC9C; }
+.color-pink { background: #E91E63; }
+.color-gray { background: #95A5A6; }
 
-.color-red {
-    background: #E85A5A;
-}
-
-.color-blue {
-    background: #5A9BD4;
-}
-
-.color-green {
-    background: #7BC142;
-}
-
-.color-yellow {
-    background: #F4A460;
-}
-
-/* Dark theme adjustments for color palette */
 .theme-dark .color-palette {
     background: rgba(44, 62, 80, 0.95);
     border-color: rgba(127, 140, 141, 0.3);

@@ -43,6 +43,9 @@ class MindMap {
         text: "white",
         connection: "#8B7ED8",
       },
+      temp: {
+        
+      },
       red: {
         bg: "#E85A5A",
         border: "#fff",
@@ -67,6 +70,30 @@ class MindMap {
         text: "white",
         connection: "#F4A460",
       },
+      purple: {
+        bg: "#9B59B6",
+        border: "#fff",
+        text: "white",
+        connection: "#9B59B6",
+      },
+      orange: {
+        bg: "#E67E22",
+        border: "#fff",
+        text: "white",
+        connection: "#E67E22",
+      },
+      teal: {
+        bg: "#1ABC9C",
+        border: "#fff",
+        text: "white",
+        connection: "#1ABC9C",
+      },
+      pink: {
+        bg: "#E91E63",
+        border: "#fff",
+        text: "white",
+        connection: "#E91E63",
+      }
     };
 
     this.init();
@@ -415,16 +442,37 @@ class MindMap {
     svg.style.height = "100%";
     svg.style.overflow = "visible";
 
+    // Create filter for glow effect
+    const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+    const filter = document.createElementNS("http://www.w3.org/2000/svg", "filter");
+    filter.setAttribute("id", "glow");
+    
+    const feGaussianBlur = document.createElementNS("http://www.w3.org/2000/svg", "feGaussianBlur");
+    feGaussianBlur.setAttribute("stdDeviation", "2.5");
+    feGaussianBlur.setAttribute("result", "coloredBlur");
+
+    const feMerge = document.createElementNS("http://www.w3.org/2000/svg", "feMerge");
+    const feMergeNode1 = document.createElementNS("http://www.w3.org/2000/svg", "feMergeNode");
+    feMergeNode1.setAttribute("in", "coloredBlur");
+    const feMergeNode2 = document.createElementNS("http://www.w3.org/2000/svg", "feMergeNode");
+    feMergeNode2.setAttribute("in", "SourceGraphic");
+
+    feMerge.appendChild(feMergeNode1);
+    feMerge.appendChild(feMergeNode2);
+    filter.appendChild(feGaussianBlur);
+    filter.appendChild(feMerge);
+    defs.appendChild(filter);
+    svg.appendChild(defs);
+
     const line = document.createElementNS("http://www.w3.org/2000/svg", "path");
-
-    const bubbleColor = this.connectStart.dataset.color || "default";
-    const connectionColor = this.colors[bubbleColor].connection;
-
-    line.setAttribute("stroke", connectionColor);
+    // Set color based on theme
+    const isDarkTheme = document.body.classList.contains('theme-dark');
+    line.setAttribute("stroke", isDarkTheme ? "#ffffff" : "#CCCCCC");
     line.setAttribute("stroke-width", "3");
     line.setAttribute("stroke-linecap", "round");
     line.setAttribute("fill", "none");
-    line.setAttribute("opacity", "0.8");
+    line.setAttribute("filter", "url(#glow)");
+    line.setAttribute("opacity", "0.9");
 
     this.setLineStyle(line, this.currentLineType);
 
