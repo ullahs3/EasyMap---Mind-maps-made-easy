@@ -17,22 +17,26 @@
         <div class="panel-content">
             <div class="instructions">
                 <h3>Mind Map Controls</h3>
-                <ul>
+                <ul class="controls-list">
+                    <li class="controls-header">Bubble Creation & Editing</li>
                     <li>Right-click: Create bubble</li>
-                    <li>Left-click drag: Move bubble</li>
-                    <li>Scroll while dragging: Resize bubble</li>
                     <li>Double-click: Edit text</li>
-                    <li>Right-click hold: Connect bubbles</li>
-                    <li>Left-click while connecting: Toggle line type</li>
-                    <li>Middle-click: Delete bubble/line</li>
-                    <li>Scroll wheel: Zoom in/out</li>
+                    <li>Left-click: Move bubble</li>
+                    <li>Left-click + Space: Move bubble and children</li>
+                    <li>Left-click + Shift: Resize bubble</li>
+                    <li>Shift + Right-click: Change bubble color</li>
+                    <li class="controls-header">Connections</li>
+                    <li>Ctrl + Left-click: Connect bubbles</li>
+                    <li>Shift while connecting: Toggle line type</li>
+                    <li class="controls-header">Deletion</li>
+                    <li>Ctrl + Right-click: Delete bubble/line</li>
                 </ul>
             </div>
             
             <div class="toolbar">
-                <button id="save-btn">Save</button>
-                <button id="load-btn">Load</button>
-                <button id="export-png-btn">Export PNG</button>
+                <!-- <button id="save-btn">Save</button> -->
+                <button id="load-btn">Load JSON</button>
+                <!-- <button id="export-png-btn">Export PNG</button> -->
                 <button id="export-json-btn">Export JSON</button>
                 <button id="clear-btn">Clear All</button>
                 <input type="file" id="file-input" accept=".json">
@@ -50,15 +54,15 @@
     
     <div class="color-palette">
         <h4>Colors</h4>
-        <div class="color-option color-default selected" data-color="default"></div>
-        <div class="color-option color-red" data-color="red"></div>
-        <div class="color-option color-blue" data-color="blue"></div>
-        <div class="color-option color-green" data-color="green"></div>
-        <div class="color-option color-yellow" data-color="yellow"></div>
-    </div>
-    
-    <div class="zoom-info">
-        Zoom: <span id="zoom-level">100%</span>
+        <div class="color-option color-default selected" data-color="default"><span class="color-number">1</span></div>
+        <div class="color-option color-red" data-color="red"><span class="color-number">2</span></div>
+        <div class="color-option color-blue" data-color="blue"><span class="color-number">3</span></div>
+        <div class="color-option color-green" data-color="green"><span class="color-number">4</span></div>
+        <div class="color-option color-yellow" data-color="yellow"><span class="color-number">5</span></div>
+        <div class="color-option color-purple" data-color="purple"><span class="color-number">6</span></div>
+        <div class="color-option color-orange" data-color="orange"><span class="color-number">7</span></div>
+        <div class="color-option color-teal" data-color="teal"><span class="color-number">8</span></div>
+        <div class="color-option color-pink" data-color="pink"><span class="color-number">9</span></div>
     </div>
 
     <div class="line-type-indicator" id="line-type-indicator">

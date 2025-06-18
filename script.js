@@ -4,7 +4,7 @@ class MindMap {
     this.canvasContent = document.getElementById("canvas-content");
     this.zoomLevel = 1;
     this.maxZoom = 2.5;
-    this.zoomDisplay = document.getElementById("zoom-level");
+    this.minZoom = 0.1;
     this.themeSelect = document.getElementById("theme-select");
     this.colorPalette = document.querySelector(".color-palette");
     this.selectedColor = "default";
@@ -13,6 +13,7 @@ class MindMap {
     this.lineTypeIndicator = document.getElementById("line-type-indicator");
     this.lineTypeText = document.getElementById("line-type-text");
     this.currentLineType = "solid";
+    this.isSpacePressed = false;
 
     // Toolbar elements
     this.saveBtn = document.getElementById("save-btn");
@@ -21,8 +22,6 @@ class MindMap {
     this.exportJsonBtn = document.getElementById("export-json-btn");
     this.clearBtn = document.getElementById("clear-btn");
     this.fileInput = document.getElementById("file-input");
-    this.translateX = 0;
-    this.translateY = 0;
     this.bubbles = [];
     this.connections = [];
     this.isDragging = false;
@@ -31,6 +30,10 @@ class MindMap {
     this.connectStart = null;
     this.tempLine = null;
     this.dragOffset = { x: 0, y: 0 };
+    this.isPanning = false;
+    this.panStart = { x: 0, y: 0 };
+    this.translateX = 0;
+    this.translateY = 0;
 
     // Color definitions
     this.colors = {
@@ -39,6 +42,9 @@ class MindMap {
         border: "#fff",
         text: "white",
         connection: "#8B7ED8",
+      },
+      temp: {
+        
       },
       red: {
         bg: "#E85A5A",
@@ -64,6 +70,30 @@ class MindMap {
         text: "white",
         connection: "#F4A460",
       },
+      purple: {
+        bg: "#9B59B6",
+        border: "#fff",
+        text: "white",
+        connection: "#9B59B6",
+      },
+      orange: {
+        bg: "#E67E22",
+        border: "#fff",
+        text: "white",
+        connection: "#E67E22",
+      },
+      teal: {
+        bg: "#1ABC9C",
+        border: "#fff",
+        text: "white",
+        connection: "#1ABC9C",
+      },
+      pink: {
+        bg: "#E91E63",
+        border: "#fff",
+        text: "white",
+        connection: "#E91E63",
+      }
     };
 
     this.init();
@@ -89,14 +119,25 @@ class MindMap {
     );
 
     // Add toolbar event listeners
-    this.saveBtn.addEventListener("click", this.saveMindMap.bind(this));
+    // this.saveBtn.addEventListener("click", this.saveMindMap.bind(this));
     this.loadBtn.addEventListener("click", () => this.fileInput.click());
     this.fileInput.addEventListener("change", this.loadMindMap.bind(this));
-    this.exportPngBtn.addEventListener("click", this.exportToPNG.bind(this));
+    // this.exportPngBtn.addEventListener("click", this.exportToPNG.bind(this));
     this.exportJsonBtn.addEventListener("click", this.exportToJSON.bind(this));
     this.clearBtn.addEventListener("click", this.clearAll.bind(this));
 
-    this.updateZoomDisplay();
+    // Add zoom detection
+    this.updateBrowserZoom();
+    window.addEventListener('resize', this.updateBrowserZoom.bind(this));
+
+    // Add keydown event listener for line type toggle
+    window.addEventListener('keydown', this.handleKeyDown.bind(this));
+    window.addEventListener('keyup', this.handleKeyUp.bind(this));
+  }
+
+  updateBrowserZoom() {
+    const zoom = window.devicePixelRatio;
+    document.documentElement.style.setProperty('--browser-zoom', zoom);
   }
 
   toggleMinimize() {
@@ -113,50 +154,52 @@ class MindMap {
 
   screenToCanvas(screenX, screenY) {
     const rect = this.canvas.getBoundingClientRect();
-    const mouseX = screenX - rect.left;
-    const mouseY = screenY - rect.top;
-    const canvasX = (mouseX - this.translateX) / this.zoomLevel;
-    const canvasY = (mouseY - this.translateY) / this.zoomLevel;
-    return { x: canvasX, y: canvasY };
+    return {
+      x: (screenX - rect.left - this.translateX) / this.zoomLevel,
+      y: (screenY - rect.top - this.translateY) / this.zoomLevel
+    };
   }
 
-  handleWheel(e) {
-    e.preventDefault();
-
-    if (this.isDragging && this.dragTarget) {
-      this.resizeBubble(this.dragTarget, e.deltaY);
-      return;
+  handleKeyDown(e) {
+    // Check if we're currently editing a bubble
+    const isEditingBubble = document.querySelector('.bubble.editing');
+    
+    if ((e.key === ' ' || e.code === 'Space') && !isEditingBubble) {
+      e.preventDefault(); // Prevent page scrolling
+      this.isSpacePressed = true;
+    }
+    if (e.code === 'ShiftLeft' && this.isConnecting) {
+      this.toggleLineType();
     }
 
-    const delta = e.deltaY > 0 ? 0.9 : 1.1;
-    let newZoom = this.zoomLevel * delta;
-    newZoom = Math.max(1, Math.min(this.maxZoom, newZoom));
-
-    if (newZoom !== this.zoomLevel) {
-      const rect = this.canvas.getBoundingClientRect();
-      const mouseX = e.clientX - rect.left;
-      const mouseY = e.clientY - rect.top;
-
-      const pointX = (mouseX - this.translateX) / this.zoomLevel;
-      const pointY = (mouseY - this.translateY) / this.zoomLevel;
-
-      this.zoomLevel = newZoom;
-
-      this.translateX = mouseX - pointX * this.zoomLevel;
-      this.translateY = mouseY - pointY * this.zoomLevel;
-
-      if (this.zoomLevel === 1) {
-        this.translateX = 0;
-        this.translateY = 0;
+    // Handle number keys 1-9 for color selection
+    const num = parseInt(e.key);
+    if (num >= 1 && num <= 9 && !isEditingBubble) {
+      const colorOptions = Array.from(this.colorPalette.querySelectorAll('.color-option'));
+      if (colorOptions[num - 1]) {
+        this.colorPalette.querySelectorAll('.color-option').forEach(option => {
+          option.classList.remove('selected');
+        });
+        colorOptions[num - 1].classList.add('selected');
+        this.selectedColor = colorOptions[num - 1].dataset.color;
       }
-      this.canvasContent.style.transformOrigin = "0 0";
-      this.canvasContent.style.transform = `translate(${this.translateX}px, ${this.translateY}px) scale(${this.zoomLevel})`;
-      this.updateZoomDisplay();
+    }
+  }
+
+  handleKeyUp(e) {
+    if (e.key === ' ' || e.code === 'Space') {
+      this.isSpacePressed = false;
     }
   }
 
   handleMouseDown(e) {
-    if (e.button === 1) {
+    if (e.button === 0 && !e.ctrlKey && !e.target.closest(".bubble")) {
+      this.isPanning = true;
+      this.panStart = { x: e.clientX, y: e.clientY };
+      return;
+    }
+
+    if ((e.ctrlKey && e.button === 2) || e.button === 1) {
       const target = e.target.closest(".bubble");
       if (target) {
         this.deleteBubble(target);
@@ -164,7 +207,16 @@ class MindMap {
       }
     }
 
-    if (e.button === 2) {
+    // Handle shift + right-click for color changing
+    if (e.button === 2 && e.shiftKey) {
+      const target = e.target.closest(".bubble");
+      if (target) {
+        this.changeBubbleColor(target, this.selectedColor);
+        return;
+      }
+    }
+
+    if (e.button === 2 || (e.ctrlKey && e.button === 0)) {
       const target = e.target.closest(".bubble");
       if (target) {
         this.isConnecting = true;
@@ -172,7 +224,7 @@ class MindMap {
         this.currentLineType = "solid";
         this.createTempLine(e.clientX, e.clientY);
         this.showLineTypeIndicator();
-      } else {
+      } else if (e.button === 2) {
         this.createBubble(e.clientX, e.clientY);
       }
     } else if (e.button === 0 && this.isConnecting) {
@@ -184,6 +236,7 @@ class MindMap {
       if (target && !target.classList.contains("editing")) {
         this.isDragging = true;
         this.dragTarget = target;
+        this.panStart = { x: e.clientX, y: e.clientY };
 
         const canvasPos = this.screenToCanvas(e.clientX, e.clientY);
         const bubbleLeft = parseFloat(target.style.left);
@@ -198,11 +251,60 @@ class MindMap {
   }
 
   handleMouseMove(e) {
+    if (this.isPanning) {
+      const dx = e.clientX - this.panStart.x;
+      const dy = e.clientY - this.panStart.y;
+      this.translateX += dx;
+      this.translateY += dy;
+      this.panStart = { x: e.clientX, y: e.clientY };
+      this.updateCanvasTransform();
+      return;
+    }
+
     if (this.isDragging && this.dragTarget) {
       const canvasPos = this.screenToCanvas(e.clientX, e.clientY);
       const x = canvasPos.x - this.dragOffset.x;
       const y = canvasPos.y - this.dragOffset.y;
-      this.moveBubble(this.dragTarget, x, y);
+
+      if (e.shiftKey) {
+        // Resize bubble when holding shift
+        const deltaY = this.panStart.y - e.clientY;
+        const currentHeight = parseFloat(this.dragTarget.style.height) || 40;
+        const newHeight = Math.max(20, currentHeight + deltaY);
+        const heightDiff = newHeight - currentHeight;
+        
+        // Update height
+        this.dragTarget.style.height = `${newHeight}px`;
+        
+        // Move the bubble up by half the height difference to maintain center point
+        const currentTop = parseFloat(this.dragTarget.style.top);
+        this.dragTarget.style.top = `${currentTop - heightDiff/2}px`;
+        
+        this.panStart = { x: e.clientX, y: e.clientY };
+      } else {
+        // Move bubble normally
+        // Get all child bubbles if space is pressed
+        const childBubbles = this.isSpacePressed ? this.getChildBubbles(this.dragTarget) : [];
+        
+        // Calculate the movement delta
+        const oldX = parseFloat(this.dragTarget.style.left);
+        const oldY = parseFloat(this.dragTarget.style.top);
+        const deltaX = x - oldX;
+        const deltaY = y - oldY;
+        
+        // Move the parent bubble
+        this.moveBubble(this.dragTarget, x, y);
+        
+        // Move all child bubbles by the same delta if space is pressed
+        if (this.isSpacePressed) {
+          childBubbles.forEach(child => {
+            const childX = parseFloat(child.style.left) + deltaX;
+            const childY = parseFloat(child.style.top) + deltaY;
+            this.moveBubble(child, childX, childY);
+          });
+        }
+      }
+      
       this.updateConnections();
     } else if (this.isConnecting && this.tempLine) {
       this.updateTempLine(e.clientX, e.clientY);
@@ -210,6 +312,7 @@ class MindMap {
   }
 
   handleMouseUp(e) {
+    this.isPanning = false;
     if (this.isDragging) {
       this.isDragging = false;
       this.dragTarget = null;
@@ -234,7 +337,7 @@ class MindMap {
 
   toggleLineType() {
     this.currentLineType =
-      this.currentLineType === "solid" ? "dotted" : "solid";
+      this.currentLineType === "solid" ? "dashed" : "solid";
     this.updateLineTypeIndicator();
 
     if (this.tempLine) {
@@ -244,7 +347,7 @@ class MindMap {
 
   updateLineTypeIndicator() {
     this.lineTypeText.textContent =
-      this.currentLineType === "solid" ? "Solid" : "Dotted";
+      this.currentLineType === "solid" ? "Solid" : "Dashed";
   }
 
   showLineTypeIndicator() {
@@ -284,8 +387,8 @@ class MindMap {
     const bubbleWidth = bubble.offsetWidth || 80;
     const bubbleHeight = bubble.offsetHeight || 40;
 
-    x = Math.max(0, Math.min(x, canvasWidth - bubbleWidth));
-    y = Math.max(0, Math.min(y, canvasHeight - bubbleHeight));
+    // x = Math.max(0, Math.min(x, canvasWidth - bubbleWidth));
+    // y = Math.max(0, Math.min(y, canvasHeight - bubbleHeight));
 
     bubble.style.left = x + "px";
     bubble.style.top = y + "px";
@@ -362,17 +465,39 @@ class MindMap {
     svg.setAttribute("class", "temp-line");
     svg.style.width = "100%";
     svg.style.height = "100%";
+    svg.style.overflow = "visible";
+
+    // Create filter for glow effect
+    const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+    const filter = document.createElementNS("http://www.w3.org/2000/svg", "filter");
+    filter.setAttribute("id", "glow");
+    
+    const feGaussianBlur = document.createElementNS("http://www.w3.org/2000/svg", "feGaussianBlur");
+    feGaussianBlur.setAttribute("stdDeviation", "2.5");
+    feGaussianBlur.setAttribute("result", "coloredBlur");
+
+    const feMerge = document.createElementNS("http://www.w3.org/2000/svg", "feMerge");
+    const feMergeNode1 = document.createElementNS("http://www.w3.org/2000/svg", "feMergeNode");
+    feMergeNode1.setAttribute("in", "coloredBlur");
+    const feMergeNode2 = document.createElementNS("http://www.w3.org/2000/svg", "feMergeNode");
+    feMergeNode2.setAttribute("in", "SourceGraphic");
+
+    feMerge.appendChild(feMergeNode1);
+    feMerge.appendChild(feMergeNode2);
+    filter.appendChild(feGaussianBlur);
+    filter.appendChild(feMerge);
+    defs.appendChild(filter);
+    svg.appendChild(defs);
 
     const line = document.createElementNS("http://www.w3.org/2000/svg", "path");
-
-    const bubbleColor = this.connectStart.dataset.color || "default";
-    const connectionColor = this.colors[bubbleColor].connection;
-
-    line.setAttribute("stroke", connectionColor);
+    // Set color based on theme
+    const isDarkTheme = document.body.classList.contains('theme-dark');
+    line.setAttribute("stroke", isDarkTheme ? "#ffffff" : "#CCCCCC");
     line.setAttribute("stroke-width", "3");
     line.setAttribute("stroke-linecap", "round");
     line.setAttribute("fill", "none");
-    line.setAttribute("opacity", "0.8");
+    line.setAttribute("filter", "url(#glow)");
+    line.setAttribute("opacity", "0.9");
 
     this.setLineStyle(line, this.currentLineType);
 
@@ -384,10 +509,10 @@ class MindMap {
   }
 
   setLineStyle(lineElement, lineType) {
-    if (lineType === "dotted") {
+    if (lineType === "dashed") {
       lineElement.setAttribute("stroke-dasharray", "4,6");
     } else {
-      lineElement.setAttribute("stroke-dasharray", "8,4");
+      lineElement.setAttribute("stroke-dasharray", "none");
     }
   }
 
@@ -461,12 +586,13 @@ class MindMap {
 
     const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     svg.setAttribute("class", "connection");
-    svg.style.width = "100%";
-    svg.style.height = "100%";
     svg.style.position = "absolute";
     svg.style.top = "0";
     svg.style.left = "0";
+    svg.style.width = "100%";
+    svg.style.height = "100%";
     svg.style.pointerEvents = "none";
+    svg.style.overflow = "visible";
 
     const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
     const gradient = document.createElementNS(
@@ -480,26 +606,17 @@ class MindMap {
     const bubbleColor = bubble2.dataset.color || "default";
     const connectionColor = this.colors[bubbleColor].connection;
 
-    const stop1 = document.createElementNS(
-      "http://www.w3.org/2000/svg",
-      "stop"
-    );
+    const stop1 = document.createElementNS("http://www.w3.org/2000/svg", "stop");
     stop1.setAttribute("offset", "0%");
     stop1.setAttribute("stop-color", connectionColor);
     stop1.setAttribute("stop-opacity", "0.9");
 
-    const stop2 = document.createElementNS(
-      "http://www.w3.org/2000/svg",
-      "stop"
-    );
+    const stop2 = document.createElementNS("http://www.w3.org/2000/svg", "stop");
     stop2.setAttribute("offset", "50%");
     stop2.setAttribute("stop-color", connectionColor);
     stop2.setAttribute("stop-opacity", "0.7");
 
-    const stop3 = document.createElementNS(
-      "http://www.w3.org/2000/svg",
-      "stop"
-    );
+    const stop3 = document.createElementNS("http://www.w3.org/2000/svg", "stop");
     stop3.setAttribute("offset", "100%");
     stop3.setAttribute("stop-color", connectionColor);
     stop3.setAttribute("stop-opacity", "0.4");
@@ -510,10 +627,7 @@ class MindMap {
     defs.appendChild(gradient);
     svg.appendChild(defs);
 
-    const clickPath = document.createElementNS(
-      "http://www.w3.org/2000/svg",
-      "path"
-    );
+    const clickPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
     clickPath.setAttribute("fill", "none");
     clickPath.setAttribute("stroke", "transparent");
     clickPath.setAttribute("stroke-width", "20");
@@ -521,10 +635,7 @@ class MindMap {
     clickPath.style.pointerEvents = "stroke";
     clickPath.style.cursor = "pointer";
 
-    const visiblePath = document.createElementNS(
-      "http://www.w3.org/2000/svg",
-      "path"
-    );
+    const visiblePath = document.createElementNS("http://www.w3.org/2000/svg", "path");
     visiblePath.setAttribute("fill", "none");
     visiblePath.setAttribute("stroke", `url(#${gradientId})`);
     visiblePath.setAttribute("stroke-width", "4");
@@ -534,14 +645,9 @@ class MindMap {
     visiblePath.style.transition = "all 0.3s ease";
     visiblePath.style.filter = "drop-shadow(0 2px 4px rgba(0,0,0,0.1))";
 
-    if (lineType === "dotted") {
-      visiblePath.setAttribute("stroke-dasharray", "4,6");
-    }
+    this.setLineStyle(visiblePath, lineType);
 
-    const glowPath = document.createElementNS(
-      "http://www.w3.org/2000/svg",
-      "path"
-    );
+    const glowPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
     glowPath.setAttribute("fill", "none");
     glowPath.setAttribute("stroke", connectionColor);
     glowPath.setAttribute("stroke-width", "8");
@@ -550,17 +656,15 @@ class MindMap {
     glowPath.setAttribute("opacity", "0.1");
     glowPath.style.pointerEvents = "none";
 
-    if (lineType === "dotted") {
-      glowPath.setAttribute("stroke-dasharray", "4,6");
-    }
+    this.setLineStyle(glowPath, lineType);
 
     svg.appendChild(glowPath);
     svg.appendChild(clickPath);
     svg.appendChild(visiblePath);
 
     const connection = {
-      start: bubble1,
-      end: bubble2,
+      start: bubble2,
+      end: bubble1,
       element: svg,
       clickLine: clickPath,
       visibleLine: visiblePath,
@@ -583,7 +687,7 @@ class MindMap {
     });
 
     clickPath.addEventListener("mousedown", (e) => {
-      if (e.button === 1) {
+      if ((e.ctrlKey && e.button === 2) || e.button === 1) {
         e.preventDefault();
         e.stopPropagation();
         this.deleteConnection(connection);
@@ -612,7 +716,6 @@ class MindMap {
     connection.gradient.setAttribute("y2", y2);
 
     const pathData = this.createCurvePath(x1, y1, x2, y2);
-
     connection.clickLine.setAttribute("d", pathData);
     connection.visibleLine.setAttribute("d", pathData);
     connection.glowLine.setAttribute("d", pathData);
@@ -678,6 +781,7 @@ class MindMap {
     bubble.style.background = colorScheme.bg;
     bubble.style.borderColor = colorScheme.border;
     bubble.style.color = colorScheme.text;
+    bubble.dataset.color = color;
   }
 
   updateZoomDisplay() {
@@ -780,8 +884,8 @@ class MindMap {
     });
 
     data.connections.forEach((connData) => {
-      const startBubble = bubbleMap.get(connData.startId);
-      const endBubble = bubbleMap.get(connData.endId);
+      const endBubble = bubbleMap.get(connData.startId);
+      const startBubble = bubbleMap.get(connData.endId);
       if (startBubble && endBubble) {
         this.createConnection(
           startBubble,
@@ -797,8 +901,7 @@ class MindMap {
       this.translateY = data.translate.y;
     }
 
-    this.canvasContent.style.transform = `translate(${this.translateX}px, ${this.translateY}px) scale(${this.zoomLevel})`;
-    this.updateZoomDisplay();
+    this.updateCanvasTransform();
   }
 
   exportToPNG() {
@@ -928,8 +1031,7 @@ class MindMap {
     this.zoomLevel = 1;
     this.translateX = 0;
     this.translateY = 0;
-    this.canvasContent.style.transform = "";
-    this.updateZoomDisplay();
+    this.updateCanvasTransform();
   }
 
   getContentBounds() {
@@ -969,6 +1071,76 @@ class MindMap {
       width: maxX - minX,
       height: maxY - minY,
     };
+  }
+
+  updateCanvasTransform() {
+    this.canvasContent.style.transform = `translate(${this.translateX}px, ${this.translateY}px) scale(${this.zoomLevel})`;
+  }
+
+  getChildBubbles(parentBubble) {
+    const children = new Set();
+    const visited = new Set();
+
+    const traverse = (bubble) => {
+      if (visited.has(bubble)) return;
+      visited.add(bubble);
+
+      this.connections.forEach(conn => {
+        if (conn.start === bubble) {
+          children.add(conn.end);
+          traverse(conn.end);
+        }
+      });
+    };
+
+    traverse(parentBubble);
+    return Array.from(children);
+  }
+
+  handleWheel(e) {
+    e.preventDefault();
+    
+    // Get the mouse position relative to the canvas
+    const rect = this.canvas.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+    
+    // Calculate the scroll delta (negated to fix inverted direction)
+    const deltaX = -(e.deltaX || 0);
+    const deltaY = -(e.deltaY || 0);
+    
+    // Update the translation
+    this.translateX += deltaX;
+    this.translateY += deltaY;
+    
+    // Update the canvas transform
+    this.updateCanvasTransform();
+  }
+
+  changeBubbleColor(bubble, newColor) {
+    // Get the old color of the bubble before changing it
+    const oldColor = bubble.dataset.color || 'default';
+    
+    // Change the color of the bubble
+    this.applyBubbleColor(bubble, newColor);
+    
+    // If this bubble is a parent (has children), update connection colors
+    const childBubbles = this.getChildBubbles(bubble);
+    
+    if (childBubbles.length > 0) {
+      // Update only connections that START from this parent bubble
+      this.connections.forEach(connection => {
+        // Only update connections where this bubble is the parent (connection.start === bubble)
+        if (connection.start === bubble) {
+          const connectionColor = this.colors[newColor].connection;
+          const stops = connection.gradient.querySelectorAll("stop");
+          stops[0].setAttribute("stop-color", connectionColor);
+          stops[1].setAttribute("stop-color", connectionColor);
+          stops[2].setAttribute("stop-color", connectionColor);
+          connection.glowLine.setAttribute("stroke", connectionColor);
+        }
+      });
+    }
   }
 }
 
