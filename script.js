@@ -119,10 +119,10 @@ class MindMap {
     );
 
     // Add toolbar event listeners
-    this.saveBtn.addEventListener("click", this.saveMindMap.bind(this));
+    // this.saveBtn.addEventListener("click", this.saveMindMap.bind(this));
     this.loadBtn.addEventListener("click", () => this.fileInput.click());
     this.fileInput.addEventListener("change", this.loadMindMap.bind(this));
-    this.exportPngBtn.addEventListener("click", this.exportToPNG.bind(this));
+    // this.exportPngBtn.addEventListener("click", this.exportToPNG.bind(this));
     this.exportJsonBtn.addEventListener("click", this.exportToJSON.bind(this));
     this.clearBtn.addEventListener("click", this.clearAll.bind(this));
 
