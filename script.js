@@ -207,6 +207,15 @@ class MindMap {
       }
     }
 
+    // Handle shift + right-click for color changing
+    if (e.button === 2 && e.shiftKey) {
+      const target = e.target.closest(".bubble");
+      if (target) {
+        this.changeBubbleColor(target, this.selectedColor);
+        return;
+      }
+    }
+
     if (e.button === 2 || (e.ctrlKey && e.button === 0)) {
       const target = e.target.closest(".bubble");
       if (target) {
@@ -1106,6 +1115,32 @@ class MindMap {
     
     // Update the canvas transform
     this.updateCanvasTransform();
+  }
+
+  changeBubbleColor(bubble, newColor) {
+    // Get the old color of the bubble before changing it
+    const oldColor = bubble.dataset.color || 'default';
+    
+    // Change the color of the bubble
+    this.applyBubbleColor(bubble, newColor);
+    
+    // If this bubble is a parent (has children), update connection colors
+    const childBubbles = this.getChildBubbles(bubble);
+    
+    if (childBubbles.length > 0) {
+      // Update only connections that START from this parent bubble
+      this.connections.forEach(connection => {
+        // Only update connections where this bubble is the parent (connection.start === bubble)
+        if (connection.start === bubble) {
+          const connectionColor = this.colors[newColor].connection;
+          const stops = connection.gradient.querySelectorAll("stop");
+          stops[0].setAttribute("stop-color", connectionColor);
+          stops[1].setAttribute("stop-color", connectionColor);
+          stops[2].setAttribute("stop-color", connectionColor);
+          connection.glowLine.setAttribute("stroke", connectionColor);
+        }
+      });
+    }
   }
 }
 
