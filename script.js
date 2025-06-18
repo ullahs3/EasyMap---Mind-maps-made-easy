@@ -884,8 +884,8 @@ class MindMap {
     });
 
     data.connections.forEach((connData) => {
-      const startBubble = bubbleMap.get(connData.startId);
-      const endBubble = bubbleMap.get(connData.endId);
+      const endBubble = bubbleMap.get(connData.startId);
+      const startBubble = bubbleMap.get(connData.endId);
       if (startBubble && endBubble) {
         this.createConnection(
           startBubble,
