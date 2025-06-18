@@ -161,7 +161,10 @@ class MindMap {
   }
 
   handleKeyDown(e) {
-    if (e.key === ' ' || e.code === 'Space') {
+    // Check if we're currently editing a bubble
+    const isEditingBubble = document.querySelector('.bubble.editing');
+    
+    if ((e.key === ' ' || e.code === 'Space') && !isEditingBubble) {
       e.preventDefault(); // Prevent page scrolling
       this.isSpacePressed = true;
     }
@@ -171,18 +174,14 @@ class MindMap {
 
     // Handle number keys 1-9 for color selection
     const num = parseInt(e.key);
-    if (num >= 1 && num <= 9) {
-      // Check if we're currently editing a bubble
-      const isEditingBubble = document.querySelector('.bubble.editing');
-      if (!isEditingBubble) {
-        const colorOptions = Array.from(this.colorPalette.querySelectorAll('.color-option'));
-        if (colorOptions[num - 1]) {
-          this.colorPalette.querySelectorAll('.color-option').forEach(option => {
-            option.classList.remove('selected');
-          });
-          colorOptions[num - 1].classList.add('selected');
-          this.selectedColor = colorOptions[num - 1].dataset.color;
-        }
+    if (num >= 1 && num <= 9 && !isEditingBubble) {
+      const colorOptions = Array.from(this.colorPalette.querySelectorAll('.color-option'));
+      if (colorOptions[num - 1]) {
+        this.colorPalette.querySelectorAll('.color-option').forEach(option => {
+          option.classList.remove('selected');
+        });
+        colorOptions[num - 1].classList.add('selected');
+        this.selectedColor = colorOptions[num - 1].dataset.color;
       }
     }
   }
