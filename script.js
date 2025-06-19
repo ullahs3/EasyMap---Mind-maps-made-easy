@@ -1195,7 +1195,7 @@ class MindMap {
     if (childBubbles.length > 0) {
       // Update only connections that START from this parent bubble
       this.connections.forEach(connection => {
-        if (connection.start === bubble) {
+        if (connection.end === bubble) {
           const connectionColor = this.colors[newColor].connection;
           const stops = connection.gradient.querySelectorAll("stop");
           stops[0].setAttribute("stop-color", connectionColor);
