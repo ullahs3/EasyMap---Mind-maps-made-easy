@@ -902,6 +902,7 @@ class MindMap {
       startId: conn.start.dataset.id,
       endId: conn.end.dataset.id,
       lineType: conn.lineType || "solid",
+      color: conn.customColor || null,
     }));
 
     return {
@@ -944,6 +945,17 @@ class MindMap {
           endBubble,
           connData.lineType || "solid"
         );
+        // After creation, set the custom color if present
+        if (connData.color) {
+          const lastConn = this.connections[this.connections.length - 1];
+          lastConn.customColor = connData.color;
+          const connectionColor = this.colors[connData.color]?.connection || this.colors[endBubble.dataset.color || "default"].connection;
+          const stops = lastConn.gradient.querySelectorAll("stop");
+          stops[0].setAttribute("stop-color", connectionColor);
+          stops[1].setAttribute("stop-color", connectionColor);
+          stops[2].setAttribute("stop-color", connectionColor);
+          lastConn.glowLine.setAttribute("stroke", connectionColor);
+        }
       }
     });
 
@@ -1183,7 +1195,6 @@ class MindMap {
     if (childBubbles.length > 0) {
       // Update only connections that START from this parent bubble
       this.connections.forEach(connection => {
-        // Only update connections where this bubble is the parent (connection.start === bubble)
         if (connection.start === bubble) {
           const connectionColor = this.colors[newColor].connection;
           const stops = connection.gradient.querySelectorAll("stop");
@@ -1191,6 +1202,8 @@ class MindMap {
           stops[1].setAttribute("stop-color", connectionColor);
           stops[2].setAttribute("stop-color", connectionColor);
           connection.glowLine.setAttribute("stroke", connectionColor);
+          // Store the custom color in the connection object for persistence
+          connection.customColor = newColor;
         }
       });
     }
