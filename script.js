@@ -663,8 +663,8 @@ class MindMap {
     svg.appendChild(visiblePath);
 
     const connection = {
-      start: bubble2,
-      end: bubble1,
+      start: bubble1,
+      end: bubble2,
       element: svg,
       clickLine: clickPath,
       visibleLine: visiblePath,
@@ -884,8 +884,8 @@ class MindMap {
     });
 
     data.connections.forEach((connData) => {
-      const endBubble = bubbleMap.get(connData.startId);
-      const startBubble = bubbleMap.get(connData.endId);
+      const startBubble = bubbleMap.get(connData.startId);
+      const endBubble = bubbleMap.get(connData.endId);
       if (startBubble && endBubble) {
         this.createConnection(
           startBubble,
