@@ -133,6 +133,12 @@ class MindMap {
     // Add keydown event listener for line type toggle
     window.addEventListener('keydown', this.handleKeyDown.bind(this));
     window.addEventListener('keyup', this.handleKeyUp.bind(this));
+
+    const savedTheme = localStorage.getItem("mindmap-theme");
+    if (savedTheme) {
+      this.themeSelect.value = savedTheme;
+      document.body.className = savedTheme === "default" ? "" : `theme-${savedTheme}`;
+    }
   }
 
   updateBrowserZoom() {
@@ -762,6 +768,8 @@ class MindMap {
 
       connection.glowLine.setAttribute("stroke", connectionColor);
     });
+
+    localStorage.setItem("mindmap-theme", e.target.value);
   }
 
   handleColorChange(e) {
