@@ -14,6 +14,8 @@ class MindMap {
     this.lineTypeText = document.getElementById("line-type-text");
     this.currentLineType = "solid";
     this.isSpacePressed = false;
+    this.isWPressed = false;
+    this.hasUnsavedChanges = false;
 
     // Toolbar elements
     this.saveBtn = document.getElementById("save-btn");
@@ -106,6 +108,12 @@ class MindMap {
     this.canvas.addEventListener("mouseup", this.handleMouseUp.bind(this));
     this.canvas.addEventListener("dblclick", this.handleDoubleClick.bind(this));
     this.canvas.addEventListener("wheel", this.handleWheel.bind(this));
+    
+    // Ensure canvas can receive focus for keyboard events
+    this.canvas.setAttribute('tabindex', '0');
+    this.canvas.addEventListener('focus', () => console.log('Canvas focused'));
+    this.canvas.addEventListener('blur', () => console.log('Canvas blurred'));
+    
     this.themeSelect.addEventListener(
       "change",
       this.handleThemeChange.bind(this)
@@ -119,10 +127,9 @@ class MindMap {
     );
 
     // Add toolbar event listeners
-    // this.saveBtn.addEventListener("click", this.saveMindMap.bind(this));
+    this.saveBtn.addEventListener("click", this.saveMindMap.bind(this));
     this.loadBtn.addEventListener("click", () => this.fileInput.click());
-    this.fileInput.addEventListener("change", this.loadMindMap.bind(this));
-    // this.exportPngBtn.addEventListener("click", this.exportToPNG.bind(this));
+    this.fileInput.addEventListener("change", this.loadMindMapFromFile.bind(this));
     this.exportJsonBtn.addEventListener("click", this.exportToJSON.bind(this));
     this.clearBtn.addEventListener("click", this.clearAll.bind(this));
 
@@ -133,6 +140,29 @@ class MindMap {
     // Add keydown event listener for line type toggle
     window.addEventListener('keydown', this.handleKeyDown.bind(this));
     window.addEventListener('keyup', this.handleKeyUp.bind(this));
+
+    // Load saved theme preference
+    this.loadThemePreference();
+    
+    // Auto-load saved mind map on page load
+    this.autoLoadMindMap();
+  }
+
+  autoLoadMindMap() {
+    try {
+      const saved = localStorage.getItem("mindmap-save");
+      if (saved) {
+        const data = JSON.parse(saved);
+        this.importData(data);
+        
+        // Mark as saved since it was loaded from localStorage
+        this.markAsSaved();
+        
+        console.log("Auto-loaded mind map and theme from localStorage");
+      }
+    } catch (err) {
+      console.error("Failed to auto-load mind map:", err);
+    }
   }
 
   updateBrowserZoom() {
@@ -375,6 +405,7 @@ class MindMap {
 
     this.canvasContent.appendChild(bubble);
     this.bubbles.push(bubble);
+    this.markAsChanged();
 
     setTimeout(() => {
       this.editBubble(bubble);
@@ -447,6 +478,7 @@ class MindMap {
       bubble.textContent = newText;
       bubble.classList.remove("editing");
       this.updateConnections();
+      this.markAsChanged();
     };
 
     input.addEventListener("blur", finishEdit);
@@ -697,6 +729,7 @@ class MindMap {
     this.connections.push(connection);
     this.canvasContent.appendChild(svg);
     this.updateConnection(connection);
+    this.markAsChanged();
   }
 
   updateConnection(connection) {
@@ -732,6 +765,7 @@ class MindMap {
 
     this.bubbles = this.bubbles.filter((b) => b !== bubble);
     bubble.remove();
+    this.markAsChanged();
   }
 
   deleteConnection(connectionObj) {
@@ -739,6 +773,7 @@ class MindMap {
       (connection) => connection !== connectionObj
     );
     connectionObj.element.remove();
+    this.markAsChanged();
   }
 
   updateConnections() {
@@ -762,6 +797,9 @@ class MindMap {
 
       connection.glowLine.setAttribute("stroke", connectionColor);
     });
+
+    // Save theme preference
+    this.saveThemePreference();
   }
 
   handleColorChange(e) {
@@ -789,31 +827,46 @@ class MindMap {
   }
 
   saveMindMap() {
-    const data = this.exportData();
-    localStorage.setItem("mindmap-save", JSON.stringify(data));
-
-    const originalText = this.saveBtn.textContent;
-    this.saveBtn.textContent = "Saved!";
-    this.saveBtn.style.background = "#7BC142";
-    this.saveBtn.style.color = "white";
-    setTimeout(() => {
-      this.saveBtn.textContent = originalText;
-      this.saveBtn.style.background = "";
-      this.saveBtn.style.color = "";
-    }, 1500);
+    try {
+      const data = this.exportData();
+      // Don't include theme in mind map data - it's saved separately as user preference
+      
+      localStorage.setItem("mindmap-save", JSON.stringify(data));
+      this.markAsSaved();
+    } catch (err) {
+      alert("Failed to save mind map: " + err.message);
+    }
   }
 
-  loadMindMap(e) {
-    const file = e.target.files[0];
-    if (!file) {
+  loadMindMap() {
+    try {
       const saved = localStorage.getItem("mindmap-save");
       if (saved) {
-        this.importData(JSON.parse(saved));
-        return;
+        const data = JSON.parse(saved);
+        this.importData(data);
+        
+        // Mark as saved since it was loaded from localStorage
+        this.markAsSaved();
+        
+        this.loadBtn.textContent = "Loaded!";
+        this.loadBtn.style.background = "#7BC142";
+        this.loadBtn.style.color = "white";
+        setTimeout(() => {
+          this.loadBtn.textContent = "Load JSON";
+          this.loadBtn.style.background = "";
+          this.loadBtn.style.color = "";
+        }, 1500);
+      } else {
+        alert("No saved mind map found in this browser.");
       }
-      return;
+    } catch (err) {
+      alert("Failed to load mind map: " + err.message);
     }
+  }
 
+  loadMindMapFromFile(e) {
+    const file = e.target.files[0];
+    if (!file) return;
     const reader = new FileReader();
     reader.onload = (event) => {
       try {
@@ -824,7 +877,6 @@ class MindMap {
       }
     };
     reader.readAsText(file);
-
     e.target.value = "";
   }
 
@@ -1032,6 +1084,7 @@ class MindMap {
     this.translateX = 0;
     this.translateY = 0;
     this.updateCanvasTransform();
+    this.markAsChanged();
   }
 
   getContentBounds() {
@@ -1140,6 +1193,35 @@ class MindMap {
           connection.glowLine.setAttribute("stroke", connectionColor);
         }
       });
+    }
+    
+    this.markAsChanged();
+  }
+
+  markAsChanged() {
+    this.hasUnsavedChanges = true;
+    this.saveBtn.textContent = "Save";
+    this.saveBtn.style.background = "";
+    this.saveBtn.style.color = "";
+  }
+
+  markAsSaved() {
+    this.hasUnsavedChanges = false;
+    this.saveBtn.textContent = "Saved!";
+    this.saveBtn.style.background = "#7BC142";
+    this.saveBtn.style.color = "white";
+  }
+
+  saveThemePreference() {
+    const currentTheme = this.themeSelect.value;
+    localStorage.setItem("mindmap-theme", currentTheme);
+  }
+
+  loadThemePreference() {
+    const savedTheme = localStorage.getItem("mindmap-theme");
+    if (savedTheme) {
+      this.themeSelect.value = savedTheme;
+      this.handleThemeChange({ target: { value: savedTheme } });
     }
   }
 }
